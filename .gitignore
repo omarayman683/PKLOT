@@ -1,0 +1,17 @@
+# dataset (trop volumineux pour un repo Git)
+database/
+
+# sorties generees par le script (regenerables en relancant le script)
+model.txt
+test.txt
+comparaison_distances.txt
+histogramme_exemple.png
+histogramme_moyen.png
+comparaison_distances.png
+validation_croisee.png
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
