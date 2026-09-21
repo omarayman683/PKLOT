@@ -15,3 +15,12 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+
+resultats_v6/
+
+# images utilisees par le README (exception aux regles ci-dessus)
+!images/*.png
+
+# deep learning : caches et modeles regenerables
+deep_learning/resultats_dl/cache_*.npz
+deep_learning/resultats_dl/*.keras
