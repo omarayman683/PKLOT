@@ -22,26 +22,36 @@ choisit avec la constante `FEATURE_MODE` :
    combinés par classe, puis séparés aléatoirement en train / test (le test
    set est réservé en premier pour ne jamais se retrouver vide).
 2. **Caractérisation** (au choix) :
-   - *multiscale* : image en niveaux de gris 64×64, LBP (8 voisins, rayon 1)
-     avec mapping *uniform* (58 motifs uniformes + 1 bin « autres » = 59 bins),
-     puis un histogramme par bloc pour les grilles 1×1, 2×2 et 4×4
-     (21 blocs) : 59 × 21 = **1239 valeurs**. Chaque échelle a la même masse
-     totale (nombre de pixels), donc aucune ne domine la distance.
+   - *multiscale* (pyramide LBP 1-2-4) : image en niveaux de gris 64×64, LBP
+     (8 voisins, rayon 1) avec mapping *uniform* (58 motifs uniformes + 1 bin
+     « autres » = 59 bins). On construit ensuite une pyramide d'histogrammes
+     sur des blocs de plus en plus petits :
+     - niveau 0 : **1** histogramme sur l'image entière (64×64) ;
+     - niveau 1 : **4** histogrammes sur des blocs 2 fois plus petits (32×32) ;
+     - niveau 2 : **16** histogrammes sur des blocs encore 2 fois plus petits (16×16).
+
+     À la fin, les 21 histogrammes sont mis bout à bout pour former le vecteur
+     final : 59 × 21 = **1239 valeurs**. À chaque niveau, les histogrammes des
+     blocs additionnés redonnent exactement l'histogramme de l'image entière :
+     chaque niveau a donc la même masse totale (nombre de pixels), et aucun ne
+     domine la distance.
    - *mosaic* : image RGB séparée en 3 canaux concaténés côte à côte en une
      « grosse image », LBP sur cette image, histogramme de 256 codes.
    - *gray* et *per_plane* : voir l'extension à la couleur ci-dessous.
 3. **Modèle** : `model.txt` contient le vecteur de chaque image
    d'entraînement avec son label (0 = vide, 1 = occupée).
 4. **Classification** : 1-plus-proche-voisin avec la distance **SAD**
-   (Sum of Absolute Differences), vectorisée en numpy. Résultat dans `test.txt`.
+   (Sum of Absolute Differences), vectorisée en numpy (float32 : les distances
+   sont des entiers, donc restent exactes). Résultat dans `test.txt`.
 5. **Comparaison de distances** : le même test set est classé avec 7 méthodes
    (SAD + 6 équivalents de `cv2.compareHist` : Correlation, ChiSquare,
    Intersection, Bhattacharyya, ChiSquareAlt, KLDivergence), calculées en
    numpy, en float32 et en parallèle (threads) avec suivi de l'avancement.
-6. **Validation croisée** : le pipeline est répété sur 5 tirages aléatoires
-   (seeds 42, 1, 2, 3, 4). Le tirage 42 est le tirage « officiel » qui écrit
-   les fichiers de sortie ; les vecteurs de chaque image sont mis en cache
-   pour n'être extraits qu'une seule fois.
+6. **Validation croisée** : le pipeline est répété sur **5 tirages au
+   maximum** (seeds 42, 1, 2, 3, 4) pour limiter le temps de calcul ; la
+   comparaison couleur réutilise ces mêmes 5 tirages. Le tirage 42 est le
+   tirage « officiel » qui écrit les fichiers de sortie ; les vecteurs de
+   chaque image sont mis en cache pour n'être extraits qu'une seule fois.
 7. **Chronométrage** : chaque étape est chronométrée, résumé en fin
    d'exécution.
 
@@ -83,6 +93,8 @@ resultats_v6/
 │   ├── model.txt                  vecteurs d'entraînement (label;v1,v2,...)
 │   └── test.txt                   prédictions SAD (chemin;label_reel;label_predit;distance_min)
 ├── 2_caracterisation/
+│   ├── pyramide_histogrammes_empty.png     construction de la pyramide, niveau par niveau
+│   ├── pyramide_histogrammes_occupied.png
 │   ├── multi_echelle_exemple.png  image + grille, codes LBP, vecteur multi-échelle
 │   │                              (mode mosaic : histogramme_exemple.png)
 │   └── histogramme_moyen.png      vecteur moyen par classe
@@ -125,6 +137,16 @@ Comparaison des distances sur le tirage officiel (seed 42) :
 
 ![Comparaison des méthodes de distance](images/comparaison_distances.png)
 
+### Construction de la pyramide
+
+Pour un exemple « occupé » : 1 histogramme sur l'image entière, puis 4
+histogrammes sur des blocs 2 fois plus petits, puis 16 sur des blocs encore 2
+fois plus petits. En bas, les 21 histogrammes mis bout à bout forment le
+vecteur final de 1239 valeurs. Le titre de chaque niveau vérifie que la somme
+de ses histogrammes redonne bien l'histogramme de l'image entière.
+
+![Construction de la pyramide](images/pyramide_histogrammes_occupied.png)
+
 ### Illustration du pipeline multi-échelle
 
 Pour un exemple par classe : l'image en niveaux de gris avec la grille 4×4, les
@@ -150,22 +172,23 @@ image de largeur 3W sur laquelle un unique LBP est calculé (la *mosaïque*).
 ![Construction de la mosaïque](images/mosaique_couleur.png)
 
 Trois stratégies sont comparées avec exactement les mêmes découpages
-train / test sur **10 tirages** (SAD, 1-NN, 256 ou 768 valeurs, sans blocs) :
+train / test sur les **5 tirages** de la validation croisée (SAD, 1-NN, 256 ou
+768 valeurs, sans blocs) :
 
 | Stratégie | Accuracy moyenne | Écart-type |
 |---|---|---|
-| `gray` (référence) | 99,59 % | 0,21 pt |
-| `mosaic` (R\|G\|B, un LBP) | 99,78 % | 0,11 pt |
-| `per_plane` (un LBP par plan) | 99,77 % | 0,12 pt |
+| `gray` (référence) | 99,62 % | 0,15 pt |
+| `mosaic` (R\|G\|B, un LBP) | 99,76 % | 0,14 pt |
+| `per_plane` (un LBP par plan) | 99,76 % | 0,12 pt |
 
 ![Comparaison des stratégies couleur](images/comparaison_couleur.png)
 
-Les trois stratégies sont à moins de **0,19 point** l'une de l'autre, et la
-mosaïque et le LBP par plan sont pratiquement identiques (0,01 pt). Sur ce jeu
-de données la couleur n'apporte donc qu'un gain très faible : les deux
-stratégies couleur font un peu mieux que le gris (mieux ou égal sur 9 tirages
-sur 10 dans le fichier `comparaison_couleur.txt`) et sont plus stables, mais
-l'écart reste du même ordre que la variabilité entre tirages.
+Les trois stratégies sont à moins de **0,14 point** l'une de l'autre, et la
+mosaïque et le LBP par plan ont la même moyenne. Sur ce jeu de données la
+couleur n'apporte donc qu'un gain très faible : chacune des deux stratégies
+couleur fait mieux ou aussi bien que le gris sur 4 tirages sur 5 (fichier
+`comparaison_couleur.txt`), mais l'écart reste du même ordre que la
+variabilité entre tirages.
 
 Une explication plausible : le LBP compare chaque voisin au pixel central, il
 est donc invariant aux changements monotones d'intensité, et les trois plans
@@ -188,10 +211,10 @@ protocole complet, le CNN atteint 99,48 % contre 99,92 % pour la pyramide LBP
 |---|---|
 | `DATA_DIR`, `SUB_FOLDERS` | chemin du dataset et sous-dossiers combinés |
 | `FEATURE_MODE` | `"multiscale"`, `"mosaic"` (`"global"`), `"gray"` ou `"per_plane"` |
-| `COLOR_STRATEGIES`, `COLOR_SEEDS` | stratégies et 10 tirages de la comparaison couleur |
+| `COLOR_STRATEGIES`, `COLOR_SEEDS` | stratégies et tirages de la comparaison couleur (= `CV_SEEDS`, 5 tirages) |
 | `RUN_COLOR_COMPARISON` | lance la comparaison couleur après la validation croisée |
 | `GRID_SCALES` | grilles de la pyramide multi-échelle (défaut `[1, 2, 4]`) |
 | `N_TRAIN_PER_CLASS` / `N_TEST_PER_CLASS` | taille du split par classe |
 | `RESIZE_SIZE` | taille de redimensionnement avant extraction |
-| `CV_SEEDS` | graines utilisées pour la validation croisée |
+| `CV_SEEDS` | graines des 5 tirages de la validation croisée |
 | `RESULT_DIR` | dossier des sorties |

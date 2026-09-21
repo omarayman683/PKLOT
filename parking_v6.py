@@ -76,8 +76,10 @@ RANDOM_SEED = 42
 # Le 1er tirage (RANDOM_SEED) est le tirage "officiel" : c'est le seul qui
 # ecrit model.txt / test.txt / les graphes. Les autres ne servent qu'a
 # mesurer la stabilite de l'accuracy (validation croisee).
+# 5 tirages au maximum (temps de calcul) : la comparaison couleur reutilise
+# les memes 5 tirages que la validation croisee.
 CV_SEEDS = [RANDOM_SEED, 1, 2, 3, 4]
-COLOR_SEEDS = [RANDOM_SEED] + list(range(1, 10))  # 10 tirages pour la couleur
+COLOR_SEEDS = CV_SEEDS
 
 RESIZE_SIZE = (64, 64)
 VALID_EXT = (".jpg", ".jpeg", ".png", ".bmp")
@@ -475,6 +477,79 @@ def plot_multiscale_example(train_images,
     print(f"[graph] {out_file} enregistre")
 
 
+def plot_pyramid_levels(train_images, out_dir=FEATURE_DIR):
+    """Construction de la pyramide, niveau par niveau, pour 1 exemple par
+    classe : 1 histogramme sur l'image entiere, puis 4 histogrammes sur des
+    blocs 2 fois plus petits, puis 16 sur des blocs encore 2 fois plus
+    petits... et a la fin tous les histogrammes mis bout a bout forment le
+    vecteur final. Verifie au passage que les histogrammes d'un niveau
+    additionnes redonnent l'histogramme de l'image entiere."""
+    fine = GRID_SCALES[-1]
+    for class_name in LABELS:
+        out_file = os.path.join(out_dir, f"pyramide_histogrammes_{class_name}.png")
+        with timer(f"Graphique pyramide_histogrammes_{class_name}.png"):
+            gray = load_gray(train_images[class_name][0])
+            codes = UNIFORM_LUT[compute_lbp(gray)]
+            h, w = gray.shape
+            whole = np.bincount(codes.ravel(), minlength=N_BINS)
+
+            n_levels = len(GRID_SCALES)
+            fig = plt.figure(figsize=(14, 3.6 * (n_levels + 1)))
+            outer = fig.add_gridspec(n_levels + 1, 2, width_ratios=[1, 4],
+                                     hspace=0.45, wspace=0.08, top=0.94)
+
+            all_hists = []
+            for lvl, grid in enumerate(GRID_SCALES):
+                hists = block_histograms(codes, grid)
+                all_hists.extend(hists)
+                sums_ok = np.array_equal(np.sum(hists, axis=0), whole)
+
+                ax_img = fig.add_subplot(outer[lvl, 0])
+                ax_img.imshow(gray, cmap="gray")
+                for k in range(1, grid):
+                    ax_img.axhline(k * h / grid - 0.5, color="yellow", lw=1)
+                    ax_img.axvline(k * w / grid - 0.5, color="yellow", lw=1)
+                ax_img.set_title(f"niveau {lvl} : grille {grid}x{grid}\n"
+                                 f"blocs de {h // grid}x{w // grid} pixels", fontsize=10)
+                ax_img.axis("off")
+
+                inner = outer[lvl, 1].subgridspec(grid, grid, hspace=0.15, wspace=0.08)
+                ymax = max(hh.max() for hh in hists)
+                for idx, hist in enumerate(hists):
+                    ax = fig.add_subplot(inner[idx // grid, idx % grid])
+                    ax.bar(range(N_BINS), hist, width=1.0, color=f"C{lvl}")
+                    ax.set_ylim(0, ymax * 1.05)
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    if idx == 0:
+                        ax.set_title(f"{grid * grid} histogramme(s) de {N_BINS} bins"
+                                     f" - somme = histogramme 1x1 : "
+                                     f"{'oui' if sums_ok else 'NON'}",
+                                     loc="left", fontsize=10)
+
+            vector = np.concatenate(all_hists)
+            ax = fig.add_subplot(outer[n_levels, :])
+            start = 0
+            for lvl, grid in enumerate(GRID_SCALES):
+                size = grid * grid * N_BINS
+                ax.bar(range(start, start + size), vector[start:start + size],
+                       width=1.0, color=f"C{lvl}", label=f"niveau {lvl} ({grid}x{grid})")
+                start += size
+            ax.set_xlim(-0.5, len(vector) - 0.5)
+            ax.set_title(f"Vecteur final = les {len(all_hists)} histogrammes mis bout a bout "
+                         f"({len(vector)} valeurs)", fontsize=11)
+            ax.set_xlabel("indice (bloc x bin LBP)")
+            ax.set_ylabel("nb de pixels")
+            ax.legend(loc="upper right")
+
+            fig.suptitle(f"Pyramide LBP {'-'.join(str(g) for g in GRID_SCALES)} - "
+                         f"exemple '{class_name}' (grille la plus fine : {fine}x{fine})",
+                         fontsize=13)
+            fig.savefig(out_file, dpi=130, bbox_inches="tight")
+            plt.close(fig)
+        print(f"[graph] {out_file} enregistre")
+
+
 def plot_average_histograms(model_entries, out_file=os.path.join(FEATURE_DIR, "histogramme_moyen.png")):
     with timer("Graphique histogramme_moyen.png"):
         vectors_by_label = {0: [], 1: []}
@@ -527,16 +602,18 @@ def sad_distance(vec_a, vec_b):
 
 def model_to_matrix(model_entries):
     """Convertit la liste [(label, vecteur), ...] en une matrice numpy
-    (n_images x 256) et un vecteur de labels, pour un calcul vectorise."""
+    (n_images x taille du vecteur) et un vecteur de labels, pour un calcul
+    vectorise. float32 : 2x moins de memoire a parcourir que float64, et les
+    distances SAD (entiers < 2^24) restent exactes."""
     labels = np.array([label for label, _ in model_entries], dtype=np.int32)
-    matrix = np.array([vec for _, vec in model_entries], dtype=np.float64)
+    matrix = np.array([vec for _, vec in model_entries], dtype=np.float32)
     return matrix, labels
 
 
 def classify_vector_fast(test_vector, train_matrix, train_labels):
     """1-NN vectorise (distance SAD) : calcule la distance entre test_vector
     et TOUS les vecteurs d'entrainement en une seule operation numpy."""
-    test_vec = np.asarray(test_vector, dtype=np.float64)
+    test_vec = np.asarray(test_vector, dtype=np.float32)
     distances = np.sum(np.abs(train_matrix - test_vec), axis=1)
     best_idx = int(np.argmin(distances))
     return int(train_labels[best_idx]), float(distances[best_idx])
@@ -748,6 +825,7 @@ def run_cross_validation(pools):
             if is_official:
                 if FEATURE_MODE == "multiscale":
                     plot_multiscale_example(train_images)
+                    plot_pyramid_levels(train_images)
                 else:
                     plot_sample_histograms(train_images)
                 plot_average_histograms(model_entries)
