@@ -1,0 +1,61 @@
+seed,methode,protocole,accuracy
+42,CNN (deep learning),100/classe,0.864
+42,CNN (deep learning),3682/classe (ancien),0.995
+42,LBP gris,100/classe,0.917
+42,LBP mosaique RGB (v5),100/classe,0.915
+42,LBP par plan RGB,100/classe,0.919
+42,LBP multi-echelle 2x2 (4 hist.),100/classe,0.938
+42,LBP pyramide 1-2-4 (ancien),100/classe,0.943
+42,LBP gris,3682/classe (ancien),0.995
+42,LBP mosaique RGB (v5),3682/classe (ancien),0.995
+42,LBP par plan RGB,3682/classe (ancien),0.996
+42,LBP multi-echelle 2x2 (4 hist.),3682/classe (ancien),0.998
+42,LBP pyramide 1-2-4 (ancien),3682/classe (ancien),0.998
+1,CNN (deep learning),100/classe,0.915
+1,CNN (deep learning),3682/classe (ancien),0.997
+1,LBP gris,100/classe,0.898
+1,LBP mosaique RGB (v5),100/classe,0.9
+1,LBP par plan RGB,100/classe,0.892
+1,LBP multi-echelle 2x2 (4 hist.),100/classe,0.899
+1,LBP pyramide 1-2-4 (ancien),100/classe,0.905
+1,LBP gris,3682/classe (ancien),0.997
+1,LBP mosaique RGB (v5),3682/classe (ancien),0.998
+1,LBP par plan RGB,3682/classe (ancien),0.999
+1,LBP multi-echelle 2x2 (4 hist.),3682/classe (ancien),1.0
+1,LBP pyramide 1-2-4 (ancien),3682/classe (ancien),1.0
+2,CNN (deep learning),100/classe,0.933
+2,CNN (deep learning),3682/classe (ancien),0.996
+2,LBP gris,100/classe,0.916
+2,LBP mosaique RGB (v5),100/classe,0.914
+2,LBP par plan RGB,100/classe,0.922
+2,LBP multi-echelle 2x2 (4 hist.),100/classe,0.907
+2,LBP pyramide 1-2-4 (ancien),100/classe,0.928
+2,LBP gris,3682/classe (ancien),0.994
+2,LBP mosaique RGB (v5),3682/classe (ancien),0.995
+2,LBP par plan RGB,3682/classe (ancien),0.998
+2,LBP multi-echelle 2x2 (4 hist.),3682/classe (ancien),0.998
+2,LBP pyramide 1-2-4 (ancien),3682/classe (ancien),1.0
+3,CNN (deep learning),100/classe,0.932
+3,CNN (deep learning),3682/classe (ancien),0.994
+3,LBP gris,100/classe,0.925
+3,LBP mosaique RGB (v5),100/classe,0.92
+3,LBP par plan RGB,100/classe,0.923
+3,LBP multi-echelle 2x2 (4 hist.),100/classe,0.927
+3,LBP pyramide 1-2-4 (ancien),100/classe,0.926
+3,LBP gris,3682/classe (ancien),0.998
+3,LBP mosaique RGB (v5),3682/classe (ancien),0.998
+3,LBP par plan RGB,3682/classe (ancien),0.998
+3,LBP multi-echelle 2x2 (4 hist.),3682/classe (ancien),0.998
+3,LBP pyramide 1-2-4 (ancien),3682/classe (ancien),0.998
+4,CNN (deep learning),100/classe,0.899
+4,CNN (deep learning),3682/classe (ancien),0.992
+4,LBP gris,100/classe,0.911
+4,LBP mosaique RGB (v5),100/classe,0.927
+4,LBP par plan RGB,100/classe,0.92
+4,LBP multi-echelle 2x2 (4 hist.),100/classe,0.922
+4,LBP pyramide 1-2-4 (ancien),100/classe,0.931
+4,LBP gris,3682/classe (ancien),0.997
+4,LBP mosaique RGB (v5),3682/classe (ancien),0.997
+4,LBP par plan RGB,3682/classe (ancien),0.996
+4,LBP multi-echelle 2x2 (4 hist.),3682/classe (ancien),0.999
+4,LBP pyramide 1-2-4 (ancien),3682/classe (ancien),1.0

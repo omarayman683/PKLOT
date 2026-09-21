@@ -1,0 +1,11 @@
+protocole,seed,CNN (deep learning),LBP pyramide 1-2-4 (ancien),CNN - pyramide (pts)
+100/classe,42,86.4,94.3,-7.9
+100/classe,1,91.5,90.5,1.0
+100/classe,2,93.3,92.8,0.5
+100/classe,3,93.2,92.6,0.6
+100/classe,4,89.9,93.1,-3.2
+3682/classe (ancien),42,99.5,99.8,-0.3
+3682/classe (ancien),1,99.7,100.0,-0.3
+3682/classe (ancien),2,99.6,100.0,-0.4
+3682/classe (ancien),3,99.4,99.8,-0.4
+3682/classe (ancien),4,99.2,100.0,-0.8
